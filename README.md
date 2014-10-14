@@ -11,6 +11,8 @@ world.
 
 ## Installation
 
+* If you are using fish, please use the fish-compat branch until fish-shell/fish-shell#1362 is fixed
+
 * Copy agentmgr to any directory in your $PATH.
 * mkdir -p ~/.ssh/agents
 * {ba,z,}sh users: source agent.sh from your .{ba,z,}shrc or .profile
