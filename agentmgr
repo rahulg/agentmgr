@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+
+import argparse
+import glob
+import os
+import signal
+import subprocess
+import sys
+
+from configparser import SafeConfigParser
+
+
+BASE_PATH = '~/.ssh/agents'
+STATE = {
+    'confs': [],
+    'agent': None,
+    'opts': None,
+}
+
+
+def fish_setenv(k, v):
+    print('set -gx {0} {1}'.format(k, v))
+
+
+def fish_unsetenv(k):
+    print('set -ge {0}'.format(k))
+
+
+def sh_setenv(k, v):
+    print('export {0}={1}'.format(k, v))
+
+
+def sh_unsetenv(k):
+    print('unset {0}'.format(k))
+
+
+def conffile(name, pre='', post=''):
+    return os.path.join(os.path.expanduser(BASE_PATH), pre + name + post)
+
+
+def sockfile(name):
+    return conffile(name, pre='.', post='.sock')
+
+
+def pidfile(name):
+    return conffile(name, pre='.', post='.pid')
+
+
+def running_flag(name):
+    try:
+        with open(pidfile(name), 'r') as pf:
+            pid = int(pf.readline())
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                return ''
+            else:
+                return ' ✓'
+    except FileNotFoundError:
+        return ''
+
+
+def load_agents():
+    try:
+        STATE['confs'] = glob.glob(
+            os.path.join(os.path.expanduser(BASE_PATH), '*')
+        )
+    except FileNotFoundError:
+        pass
+
+
+def parse_agent(name):
+    STATE['agent'] = SafeConfigParser()
+    try:
+        with open(conffile(name), 'r') as cf:
+            STATE['agent'].read_file(cf)
+    except FileNotFoundError:
+        print(
+            file=sys.stderr
+        )
+        sys.exit(1)
+
+
+def list_agents():
+    if len(STATE['confs']) > 0:
+        print('\n'.join([
+            os.path.basename(c) + running_flag(os.path.basename(c))
+            for c in STATE['confs']
+        ]), file=sys.stderr)
+
+
+def start_agent(name):
+    parse_agent(name)
+    sa_argv = ['ssh-agent', '-s']
+    sa_argv.extend([
+        '-a',
+        sockfile(name),
+    ])
+    if STATE['agent'].has_option('agent', 'ttl'):
+        sa_argv.extend(['-t', STATE['agent']['agent']['ttl']])
+
+    try:
+        out = subprocess.check_output(sa_argv)
+    except:
+        print('Error spawning agent.', file=sys.stderr)
+        sys.exit(1)
+
+    pid = 0
+    lines = out.splitlines()
+    pid = int(str(lines[1]).split(';')[0].split('=')[1])
+    with open(pidfile(name), 'w+') as pf:
+        pf.write(str(pid))
+
+    os.environ['SSH_AUTH_SOCK'] = sockfile(name)
+
+    for key, ttl in STATE['agent'].items('keys'):
+        key_argv = ['ssh-add']
+        if int(ttl) > 0:
+            key_argv.extend(['-t', ttl])
+        key_argv.append(os.path.expanduser(os.path.expandvars(key)))
+        subprocess.check_call(key_argv)
+
+    activate_agent(name)
+
+
+def stop_agent(name):
+    if os.environ.get('SSH_AUTH_SOCK', '') == sockfile(name):
+        deactivate_agent()
+
+    try:
+        with open(pidfile(name), 'r') as pf:
+            pid = int(pf.readline())
+            os.kill(pid, signal.SIGTERM)
+        os.unlink(pidfile(name))
+    except:
+        sys.exit(1)
+
+
+def deactivate_agent(args=None):
+    if STATE['opts'].fish:
+        fish_unsetenv('SSH_AUTH_SOCK')
+    else:
+        sh_unsetenv('SSH_AUTH_SOCK')
+
+
+def activate_agent(name):
+    if not os.path.exists(sockfile(name)):
+        start_agent(name)
+    else:
+        if STATE['opts'].fish:
+            fish_setenv('SSH_AUTH_SOCK', sockfile(name))
+        else:
+            sh_setenv('SSH_AUTH_SOCK', sockfile(name))
+
+
+def main(argv):
+
+    parser = argparse.ArgumentParser(
+        description='ssh-agent manager',
+    )
+    parser.add_argument(
+        '-f', '--fish',
+        action='store_true',
+        default=False,
+        help='use fish syntax',
+    )
+    parser.add_argument('command')
+    STATE['opts'], args = parser.parse_known_args(argv)
+
+    action_tab = {
+        'ls': list_agents,
+        'start': start_agent,
+        'stop': stop_agent,
+        'clr': deactivate_agent,
+    }
+
+    if STATE['opts'].command in action_tab:
+        action_tab[STATE['opts'].command](*args)
+    else:
+        activate_agent(STATE['opts'].command)
+
+
+if __name__ == '__main__':
+    load_agents()
+    main(sys.argv[1:] if len(sys.argv) > 1 else [])
