@@ -75,9 +75,7 @@ def parse_agent(name):
         with open(conffile(name), 'r') as cf:
             STATE['agent'].read_file(cf)
     except FileNotFoundError:
-        print(
-            file=sys.stderr
-        )
+        print('Error parsing {0}.'.format(conffile(name)), file=sys.stderr)
         sys.exit(1)
 
 
@@ -133,6 +131,7 @@ def stop_agent(name):
             os.kill(pid, signal.SIGTERM)
         os.unlink(pidfile(name))
     except:
+        print('Error killing agent for {0}.'.format(name), file=sys.stderr)
         sys.exit(1)
 
 
