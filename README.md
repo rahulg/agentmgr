@@ -5,21 +5,21 @@ with shared users, or with users who have root/sudo access, you're sharing
 the keys to your personal server with everyone else. Don't do that.
 Keep your many identities separate.
 
-agentmgr tries to be a middle-ground, where you don't give up the convenience
-of having your agents forwarded, but neither do you share your keys with the
+`agentmgr` tries to be a middle-ground, where you don't give up the convenience
+of having your agents forwarded, but neither do you share all your keys with the
 world.
 
 ## Installation
 
-* Copy agentmgr to any directory in your $PATH.
-* mkdir -p ~/.ssh/agents
-* {ba,z,}sh users: source agent.sh from your .{ba,z,}shrc or .profile
+* Copy `agentmgr` to any directory in your `$PATH`.
+* `mkdir -p ~/.ssh/agents`
+* `{ba,z,}sh` users: source `agent.sh` from your `.{ba,z,}shrc` or `.profile`
 * fish users: `rsync -av fish ~/.config`
 
 ## Setup
 
-* Each agent's config goes into ~/.ssh/agents
-* Here's a sample config, ~/.ssh/agent/personal:
+* Each agent's config goes into `~/.ssh/agents`
+* Here's a sample config, `~/.ssh/agent/personal`:
 ```
 ; Base agent config
 [agent]
