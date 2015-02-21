@@ -14,7 +14,7 @@ world.
 * Copy agentmgr to any directory in your $PATH.
 * mkdir -p ~/.ssh/agents
 * {ba,z,}sh users: source agent.sh from your .{ba,z,}shrc or .profile
-* fish users: copy agent.fish to ~/.config/fish/functions/
+* fish users: `rsync -av fish ~/.config`
 
 ## Setup
 
