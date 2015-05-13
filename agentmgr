@@ -6,6 +6,7 @@ import os
 import signal
 import subprocess
 import sys
+import errno
 
 from configparser import SafeConfigParser
 
@@ -16,6 +17,10 @@ STATE = {
     'agent': None,
     'opts': None,
 }
+
+
+def print_err(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def fish_setenv(k, v):
@@ -46,18 +51,39 @@ def pidfile(name):
     return conffile(name, pre='.', post='.pid')
 
 
-def running_flag(name):
+def unlink_if_exists(path):
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+
+
+def pid_for_agent(name):
     try:
         with open(pidfile(name), 'r') as pf:
-            pid = int(pf.readline())
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                return ''
-            else:
-                return ' ✓'
+            return int(pf.readline())
     except FileNotFoundError:
-        return ''
+        return None
+
+
+def process_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except OSError as err:
+        return False if err.errno == errno.ESRCH else True
+    else:
+        return True
+
+
+def agent_is_running(name):
+    pid = pid_for_agent(name)
+    if pid is None:
+        return False
+    return process_exists(pid)
+
+
+def running_flag(name):
+    return ' ✓' if agent_is_running(name) else ''
 
 
 def load_agents():
@@ -75,16 +101,16 @@ def parse_agent(name):
         with open(conffile(name), 'r') as cf:
             STATE['agent'].read_file(cf)
     except FileNotFoundError:
-        print('Error parsing {0}.'.format(conffile(name)), file=sys.stderr)
+        print_err('Error parsing {0}.'.format(conffile(name)))
         sys.exit(1)
 
 
 def list_agents():
     if len(STATE['confs']) > 0:
-        print('\n'.join([
+        print_err('\n'.join([
             os.path.basename(c) + running_flag(os.path.basename(c))
             for c in STATE['confs']
-        ]), file=sys.stderr)
+        ]))
 
 
 def start_agent(name):
@@ -100,7 +126,7 @@ def start_agent(name):
     try:
         out = subprocess.check_output(sa_argv)
     except:
-        print('Error spawning agent.', file=sys.stderr)
+        print_err('Error spawning agent.')
         sys.exit(1)
 
     pid = 0
@@ -125,14 +151,22 @@ def stop_agent(name):
     if os.environ.get('SSH_AUTH_SOCK', '') == sockfile(name):
         deactivate_agent()
 
-    try:
-        with open(pidfile(name), 'r') as pf:
-            pid = int(pf.readline())
+    pid = pid_for_agent(name)
+    if pid is not None:
+        try:
             os.kill(pid, signal.SIGTERM)
-        os.unlink(pidfile(name))
-    except:
-        print('Error killing agent for {0}.'.format(name), file=sys.stderr)
-        sys.exit(1)
+        except OSError as err:
+            if err.errno == errno.ESRCH:
+                pass
+            else:
+                print_err('Error killing agent for {0}.'.format(name))
+                sys.exit(1)
+        except:
+            print_err('Error killing agent for {0}.'.format(name))
+            sys.exit(1)
+
+    unlink_if_exists(pidfile(name))
+    unlink_if_exists(sockfile(name))
 
 
 def deactivate_agent(args=None):
@@ -143,6 +177,8 @@ def deactivate_agent(args=None):
 
 
 def activate_agent(name):
+    if not agent_is_running(name):
+        stop_agent(name)
     if not os.path.exists(sockfile(name)):
         start_agent(name)
     else:
@@ -168,6 +204,7 @@ def main(argv):
 
     action_tab = {
         'ls': list_agents,
+        'list': list_agents,
         'start': start_agent,
         'stop': stop_agent,
         'clr': deactivate_agent,
