@@ -62,7 +62,7 @@ def pid_for_agent(name):
     try:
         with open(pidfile(name), 'r') as pf:
             return int(pf.readline())
-    except FileNotFoundError:
+    except (FileNotFoundError, ValueError):
         return None
 
 
