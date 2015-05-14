@@ -24,19 +24,19 @@ def print_err(*args, **kwargs):
 
 
 def fish_setenv(k, v):
-    print('set -gx {0} {1}'.format(k, v))
+    print('set -gx {0} {1}\n'.format(k, v))
 
 
 def fish_unsetenv(k):
-    print('set -ge {0}'.format(k))
+    print('set -ge {0}\n'.format(k))
 
 
 def sh_setenv(k, v):
-    print('export {0}={1}'.format(k, v))
+    print('export {0}={1}\n'.format(k, v))
 
 
 def sh_unsetenv(k):
-    print('unset {0}'.format(k))
+    print('unset {0}\n'.format(k))
 
 
 def conffile(name, pre='', post=''):
