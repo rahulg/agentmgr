@@ -11,16 +11,19 @@ world.
 
 ## Installation
 
-* Copy `agentmgr` to any directory in your `$PATH`.
-* `mkdir -p ~/.ssh/agents`
-* `{ba,z,}sh` users: source `agent.sh` from your `.{ba,z,}shrc` or `.profile`
-* fish users: `rsync -av fish ~/.config`
+* To install everything: `make`
+* To install only bash support: `make bash`
+* To install only fish support: `make fish`
+
+If you want to install `agentmgr` to any other path, run `make DESTDIR=/some/other/path`
+
+If you use a more traditional, non-`XDG_CONFIG_HOME`-conforming `bash`/`zsh` setup, source `shell-support/bash/functions/agent.bash` from your `.{ba,z,}shrc` or `.profile`
 
 ## Setup
 
 * Each agent's config goes into `~/.ssh/agents`
 * Here's a sample config, `~/.ssh/agent/personal`:
-```
+```ini
 ; Base agent config
 [agent]
 ; this sets default ttl for keys
