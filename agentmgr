@@ -137,12 +137,25 @@ def start_agent(name):
 
     os.environ['SSH_AUTH_SOCK'] = sockfile(name)
 
-    for key, ttl in STATE['agent'].items('keys'):
-        key_argv = ['ssh-add']
-        if int(ttl) > 0:
-            key_argv.extend(('-t', ttl))
-        key_argv.append(os.path.expanduser(os.path.expandvars(key)))
-        subprocess.check_call(key_argv)
+    try:
+        for key, ttl in STATE['agent'].items('keys'):
+            key_argv = ['ssh-add']
+            if int(ttl) > 0:
+                key_argv.extend(('-t', ttl))
+            key_argv.append(os.path.expanduser(os.path.expandvars(key)))
+            subprocess.check_call(key_argv)
+    except configparser.NoSectionError:
+        pass
+
+    try:
+        for key, ttl in STATE['agent'].items('pkcs11'):
+            key_argv = ['ssh-add']
+            if int(ttl) > 0:
+                key_argv.extend(('-t', ttl))
+            key_argv.extend(('-s', os.path.expanduser(os.path.expandvars(key))))
+            subprocess.check_call(key_argv)
+    except conffile.NoSectionError:
+        pass
 
     activate_agent(name)
 
