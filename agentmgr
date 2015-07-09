@@ -116,12 +116,12 @@ def list_agents():
 def start_agent(name):
     parse_agent(name)
     sa_argv = ['ssh-agent', '-s']
-    sa_argv.extend([
+    sa_argv.extend((
         '-a',
         sockfile(name),
-    ])
+    ))
     if STATE['agent'].has_option('agent', 'ttl'):
-        sa_argv.extend(['-t', STATE['agent']['agent']['ttl']])
+        sa_argv.extend(('-t', STATE['agent']['agent']['ttl']))
 
     try:
         out = subprocess.check_output(sa_argv)
@@ -140,7 +140,7 @@ def start_agent(name):
     for key, ttl in STATE['agent'].items('keys'):
         key_argv = ['ssh-add']
         if int(ttl) > 0:
-            key_argv.extend(['-t', ttl])
+            key_argv.extend(('-t', ttl))
         key_argv.append(os.path.expanduser(os.path.expandvars(key)))
         subprocess.check_call(key_argv)
 
