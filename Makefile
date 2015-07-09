@@ -17,4 +17,4 @@ $(DESTDIR)/agentmgr: agentmgr
 	cp -v $< $@
 
 $(XDG_CONFIG_HOME)/%: shell-support/%
-	cp -rv $< $@
+	cp -rv $</* $@
