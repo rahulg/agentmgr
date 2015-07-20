@@ -8,7 +8,7 @@ import subprocess
 import sys
 import errno
 
-from configparser import SafeConfigParser
+from configparser import SafeConfigParser, NoSectionError
 
 
 BASE_PATH = '~/.ssh/agents'
@@ -144,7 +144,7 @@ def start_agent(name):
                 key_argv.extend(('-t', ttl))
             key_argv.append(os.path.expanduser(os.path.expandvars(key)))
             subprocess.check_call(key_argv)
-    except configparser.NoSectionError:
+    except NoSectionError:
         pass
 
     try:
@@ -154,7 +154,7 @@ def start_agent(name):
                 key_argv.extend(('-t', ttl))
             key_argv.extend(('-s', os.path.expanduser(os.path.expandvars(key))))
             subprocess.check_call(key_argv)
-    except conffile.NoSectionError:
+    except NoSectionError:
         pass
 
     activate_agent(name)
